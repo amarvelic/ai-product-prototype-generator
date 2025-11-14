@@ -1,31 +1,24 @@
 import streamlit as st
 import requests
+import base64
 from PIL import Image
 import io
-import time
 
-st.set_page_config(page_title="AI Product Prototype Generator")
+st.set_page_config(page_title="AI Prototype Generator")
 
-st.title("🧪 AI Product Prototype Generator (Free, No API Key)")
-st.write("Enter a product idea to generate a prototype concept image.")
+st.title("🧪 Free AI Product Prototype Generator (No API Key Needed)")
+st.write("Generates design prototypes using a free HuggingFace Space backend.")
 
-prompt = st.text_input("Describe your product idea:")
+prompt = st.text_input("Enter your product idea:")
 
 generate = st.button("Generate")
 
-# Completely free + anonymous + works without API key
-HF_URL = "https://router.huggingface.co/hf-inference/models/prompthero/openjourney"
+HF_SPACE_URL = "https://black-forest-labs-flux-1-dev.hf.space/run/predict"
 
 def generate_image(prompt_text):
-    payload = {"inputs": prompt_text}
-
-    response = requests.post(HF_URL, json=payload)
-
-    # If the model is still waking up, retry
-    if response.status_code == 503:
-        time.sleep(3)
-        response = requests.post(HF_URL, json=payload)
-
+    payload = {"data": [prompt_text]}
+    
+    response = requests.post(HF_SPACE_URL, json=payload)
     return response
 
 if generate:
@@ -36,12 +29,10 @@ if generate:
             response = generate_image(prompt)
 
             if response.status_code == 200:
-                try:
-                    image = Image.open(io.BytesIO(response.content))
-                    st.image(image, caption="AI Prototype", use_column_width=True)
-                except Exception:
-                    st.error("Unexpected output. The model may have returned text instead of an image.")
-                    st.text(response.text)
-            else:
-                st.error(f"Generation failed. Status code: {response.status_code}")
-                st.text(response.text)
+                result = response.json()
+                # result["data"][0] contains Base64 image
+                image_base64 = result["data"][0].split(",")[1]
+                image_bytes = base64.b64decode(image_base64)
+                image = Image.open(io.BytesIO(image_bytes))
+                st.image(image, caption="Generated Prototype", use_column_width=True)
+            el

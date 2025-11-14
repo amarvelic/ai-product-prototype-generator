@@ -6,28 +6,27 @@ import time
 
 st.set_page_config(page_title="AI Product Prototype Generator")
 
-st.title("🧪 AI Product Prototype Generator")
-st.write("Describe your product idea and generate a product prototype image for free.")
+st.title("🧪 AI Product Prototype Generator (Free, No API Key)")
+st.write("Enter a product idea to generate a prototype concept image.")
 
-prompt = st.text_input("Enter your product idea:")
+prompt = st.text_input("Describe your product idea:")
 
-generate = st.button("Generate Prototype")
+generate = st.button("Generate")
 
-HF_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-2-1"
+# Completely free + anonymous + works without API key
+HF_URL = "https://router.huggingface.co/hf-inference/models/prompthero/openjourney"
 
 def generate_image(prompt_text):
     payload = {"inputs": prompt_text}
 
-    # Send request to HF
     response = requests.post(HF_URL, json=payload)
 
-    # If model is loading, wait and retry (common for free tier)
+    # If the model is still waking up, retry
     if response.status_code == 503:
         time.sleep(3)
         response = requests.post(HF_URL, json=payload)
 
     return response
-
 
 if generate:
     if not prompt.strip():
@@ -40,9 +39,9 @@ if generate:
                 try:
                     image = Image.open(io.BytesIO(response.content))
                     st.image(image, caption="AI Prototype", use_column_width=True)
-                except:
-                    st.error("Received non-image data from the model.")
+                except Exception:
+                    st.error("Unexpected output. The model may have returned text instead of an image.")
                     st.text(response.text)
             else:
-                st.error(f"Image generation failed. Status: {response.status_code}")
+                st.error(f"Generation failed. Status code: {response.status_code}")
                 st.text(response.text)

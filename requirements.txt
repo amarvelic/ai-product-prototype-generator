@@ -1,6 +1,2 @@
 streamlit
-torch==2.0.1
-diffusers
-transformers
-accelerate
-safetensors
+requests

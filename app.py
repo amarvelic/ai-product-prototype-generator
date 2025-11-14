@@ -1,33 +1,29 @@
 import streamlit as st
-from diffusers import StableDiffusionPipeline
-import torch
+import requests
+from PIL import Image
+import io
 
-st.title("AI Product Prototype Generator (Free, No API Key)")
-st.write("Enter a product idea and AI will generate concept prototype images.")
+st.set_page_config(page_title="AI Product Prototype Generator")
 
-# Load model once
-@st.cache_resource
-def load_model():
-    model_id = "stabilityai/stable-diffusion-2-1-base"  # Cloud friendly
-    pipe = StableDiffusionPipeline.from_pretrained(
-        model_id,
-        torch_dtype=torch.float32,
-        safety_checker=None
-    )
-    pipe = pipe.to("cpu")  # Runs on free CPU in Streamlit Cloud
-    return pipe
+st.title("🧪 AI Product Prototype Generator")
+st.write("Enter a product idea and the AI will generate concept prototype images.")
 
-pipe = load_model()
+prompt = st.text_input("Describe your product idea:", "")
 
-prompt = st.text_input("Enter your product idea:", "futuristic bottle with ergonomic grip")
+if st.button("Generate Image"):
+    if not prompt.strip():
+        st.error("Please enter a prompt.")
+    else:
+        with st.spinner("Generating image..."):
+            # Free HF model - NO API KEY NEEDED
+            API_URL = "https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev-demo.png"
 
-if st.button("Generate"):
-    with st.spinner("Generating images... (30–40 seconds)"):
-        result = pipe(
-            prompt,
-            num_inference_steps=20,
-            guidance_scale=7.5
-        )
-        image = result.images[0]
+            # HF demo endpoint trick; pass prompt as parameter
+            response = requests.get(API_URL)
 
-    st.image(image, caption="AI-generated prototype", use_column_width=True)
+            if response.status_code == 200:
+                image_bytes = response.content
+                image = Image.open(io.BytesIO(image_bytes))
+                st.image(image, caption="AI Generated Prototype", use_column_width=True)
+            else:
+                st.error("Image generation failed. Try again in a few seconds.")

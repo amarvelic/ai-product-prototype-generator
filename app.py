@@ -2,28 +2,43 @@ import streamlit as st
 import requests
 from PIL import Image
 import io
+import time
 
 st.set_page_config(page_title="AI Product Prototype Generator")
 
 st.title("🧪 AI Product Prototype Generator")
-st.write("Enter a product idea and the AI will generate concept prototype images.")
+st.write("Describe your product idea and generate a product prototype image for free.")
 
-prompt = st.text_input("Describe your product idea:", "")
+prompt = st.text_input("Enter your product idea:")
 
-if st.button("Generate Image"):
+generate = st.button("Generate Prototype")
+
+HF_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1"
+
+def generate_image(prompt_text):
+    payload = {"inputs": prompt_text}
+
+    # Send request to HF
+    response = requests.post(HF_URL, json=payload)
+
+    # Model loading fallback (public endpoints take a few seconds to "wake up")
+    if response.status_code == 503:
+        time.sleep(3)  # wait and retry
+        response = requests.post(HF_URL, json=payload)
+
+    return response
+
+
+if generate:
     if not prompt.strip():
         st.error("Please enter a prompt.")
     else:
         with st.spinner("Generating image..."):
-            # Free HF model - NO API KEY NEEDED
-            API_URL = "https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev-demo.png"
-
-            # HF demo endpoint trick; pass prompt as parameter
-            response = requests.get(API_URL)
+            response = generate_image(prompt)
 
             if response.status_code == 200:
-                image_bytes = response.content
-                image = Image.open(io.BytesIO(image_bytes))
-                st.image(image, caption="AI Generated Prototype", use_column_width=True)
+                image = Image.open(io.BytesIO(response.content))
+                st.image(image, caption="AI Prototype", use_column_width=True)
             else:
-                st.error("Image generation failed. Try again in a few seconds.")
+                st.error(f"Image generation failed. Status code: {response.status_code}")
+                st.error(response.text)
